@@ -4,11 +4,12 @@ import { ApolloServer } from 'apollo-server-express'
 import { createServer } from 'http'
 import { PubSub } from 'graphql-subscriptions'
 import schema from '../schema/schema.js'
+import database from './database.js'
 
 const pubsub = new PubSub()
 
 const context = () => {
-    return { pubsub }
+    return { pubsub, database }
 }
 
 const wsContext = () => {
