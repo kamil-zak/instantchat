@@ -1,14 +1,9 @@
 import knex from 'knex'
+import { databaseConfig } from './env.js'
 
 const database = knex({
     client: 'mysql2',
-    connection: {
-        host: 'localhost',
-        port: 3306,
-        user: 'root',
-        password: '',
-        database: 'instantchat',
-    },
+    connection: databaseConfig,
 })
 
 export default database
