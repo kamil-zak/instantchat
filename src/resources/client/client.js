@@ -16,7 +16,7 @@ const init = () => {
     if (!chatBoxConfig) return
     const container = document.createElement('div')
     container.style.fontFamily = '"Montserrat", sans-serif'
-    container.style.position = 'absolute'
+    container.style.position = 'fixed'
     container.style.right = '15px'
     container.style.bottom = '15px'
     document.body.appendChild(container)
