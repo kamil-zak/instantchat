@@ -5,7 +5,7 @@ import isToday from 'dayjs/plugin/isToday'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import App from './App'
 import 'dayjs/locale/pl'
-import './global.scss'
+import styles from './global.scss'
 import chatBoxConfig from './services/configService'
 
 dayjs.extend(isToday)
@@ -15,10 +15,7 @@ dayjs.locale('pl')
 const init = () => {
     if (!chatBoxConfig) return
     const container = document.createElement('div')
-    container.style.fontFamily = '"Montserrat", sans-serif'
-    container.style.position = 'fixed'
-    container.style.right = '15px'
-    container.style.bottom = '15px'
+    container.className = styles.chatbox
     document.body.appendChild(container)
 
     const root = ReactDOM.createRoot(container)
