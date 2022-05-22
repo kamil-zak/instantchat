@@ -1,9 +1,13 @@
-import knex from 'knex'
+import knexConfig from 'knex'
+import { knexSnakeCaseMappers, Model } from 'objection'
 import { databaseConfig } from './env.js'
 
-const database = knex({
+Model.useLimitInFirst = true
+
+const knex = knexConfig({
     client: 'mysql2',
     connection: databaseConfig,
+    ...knexSnakeCaseMappers(),
 })
 
-export default database
+Model.knex(knex)

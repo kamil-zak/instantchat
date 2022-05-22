@@ -4,9 +4,10 @@ import { ApolloServer } from 'apollo-server-express'
 import { createServer } from 'http'
 import { PubSub } from 'graphql-subscriptions'
 import jsonwebtoken from 'jsonwebtoken'
+import DataLoader from 'dataloader'
 import schema from '../schema/schema.js'
-import database from './database.js'
 import { secrets } from './env.js'
+import { batchUnreadCount } from './dataloader.js'
 
 const pubsub = new PubSub()
 
@@ -23,7 +24,8 @@ const verifyJWT = (token) => {
 const context = async ({ req }) => {
     const token = req.headers.authorization?.split(' ')?.[1]
     const authData = await verifyJWT(token)
-    return { pubsub, database, authData }
+    const unreadCountLoader = new DataLoader(batchUnreadCount)
+    return { pubsub, authData, unreadCountLoader }
 }
 
 const wsContext = async (ctx) => {

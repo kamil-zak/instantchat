@@ -1,6 +1,7 @@
 import { ApolloError, AuthenticationError, gql } from 'apollo-server-core'
 import jwt from 'jsonwebtoken'
 import { secrets } from '../config/env.js'
+import User from '../models/user.js'
 
 export const authTypes = gql`
     type Query {
@@ -23,15 +24,15 @@ export const authTypes = gql`
 `
 export const authResolvers = {
     Query: {
-        userPayload: async (_, args, { database, authData }) => {
+        userPayload: async (_, args, { authData }) => {
             if (!authData?.userId) return null
-            const user = await database('users').select('id', 'email').where({ id: authData.userId }).first()
+            const user = await User.query().select('id', 'email').findById(authData.userId)
             return user
         },
     },
     Mutation: {
-        signIn: async (_, { email, password }, { database }) => {
-            const user = await database('users').where({ email, password }).first()
+        signIn: async (_, { email, password }) => {
+            const user = await User.query().where({ email, password }).first()
             if (!user) throw new ApolloError('Dane logowania są niepoprawne', 'INVALID_LOGIN_DATA')
             const userId = String(user.id)
             const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '3000m' })

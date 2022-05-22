@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import './config/database.js'
 import express from 'express'
 import fs from 'fs'
 import { port } from './config/env.js'

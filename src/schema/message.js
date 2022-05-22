@@ -1,24 +1,16 @@
 import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
+import Conversation from '../models/conversations.js'
+import Message from '../models/message.js'
 import verifyAuthData from '../utils/verifyAuthData.js'
-
-const getConversationDetails = async (conversationId, database) => {
-    const details = await database('conversations')
-        .select({ userId: 'chats.user_id', chatId: 'chats.id', chatName: 'chats.name' })
-        .leftJoin('chats', 'chats.id', 'conversations.chat_id')
-        .where({ 'conversations.id': conversationId })
-        .first()
-    const chat = { id: String(details.chatId), name: details.chatName }
-    return { userId: String(details.userId), chat }
-}
 
 export const messageTypes = gql`
     type Query {
         getMessages(conversationId: ID!, before: ID, limit: Int = 10): MessagesResponse @auth
     }
     type Mutation {
-        sendMessage(conversationId: ID!, content: String!): ID! @auth
-        sendResponse(conversationId: ID!, content: String!): ID! @auth
+        sendMessage(conversationId: ID!, content: String!, isResponse: Boolean = false): ID! @auth
+        markAsRead(conversationId: ID!, isResponse: Boolean = false): Boolean @auth
     }
     type Subscription {
         newConversationMessage(conversationId: ID!): NewMessage! @auth
@@ -45,18 +37,18 @@ export const messageTypes = gql`
 `
 export const messageResolvers = {
     Query: {
-        getMessages: async (_, { conversationId, before, limit }, { database, authData }) => {
-            const { userId } = await getConversationDetails(conversationId, database)
+        getMessages: async (_, { conversationId, before, limit }, { authData }) => {
+            const { userId } = await Conversation.query().findById(conversationId).select('userId').joinRelated('chat')
             verifyAuthData(authData, { userId, conversationId })
 
-            let selectedMessages = database('messages')
-                .select({ id: 'id', isResponse: 'is_response', content: 'content', time: 'time' })
-                .where({ conversation_id: conversationId })
+            const messages = await Message.query()
+                .where({ conversationId })
                 .orderBy('time', 'desc')
                 .limit(limit + 1)
-                .as('selected_messages')
-            if (before) selectedMessages = selectedMessages.andWhere('id', '<', before)
-            const messages = await database(selectedMessages).orderBy('time')
+                .modify((builder) => {
+                    if (before) builder.andWhere('id', '<', before)
+                })
+            messages.reverse()
 
             const hasMore = messages.length > limit
             if (hasMore) messages.splice(0, 1)
@@ -65,38 +57,22 @@ export const messageResolvers = {
         },
     },
     Mutation: {
-        sendMessage: async (_, { conversationId, content }, { database, pubsub, authData }) => {
-            verifyAuthData(authData, { conversationId })
+        sendMessage: async (_, { conversationId, content, isResponse }, { pubsub, authData }) => {
+            const { userId, chat } = await Conversation.query().findById(conversationId).select('userId').withGraphJoined('chat')
+            if (isResponse) verifyAuthData(authData, isResponse ? { userId } : { conversationId })
 
-            const { userId, chat } = await getConversationDetails(conversationId, database)
             const time = new Date()
-            const [id] = await database('messages').insert({
-                conversation_id: conversationId,
-                is_response: false,
-                content,
-                time,
-            })
+            const { id } = await Message.query().insert({ conversationId, isResponse, content, time })
 
-            await database('conversations').where({ id: conversationId }).update({ unread: true })
-            pubsub.publish('NEW_MESSAGE', { message: { id, isResponse: false, content, time }, userId, chat, conversationId })
+            pubsub.publish('NEW_MESSAGE', { message: { id, isResponse, content, time }, userId, chat, conversationId })
+
             return id
         },
-        sendResponse: async (_, { conversationId, content }, { database, pubsub, authData }) => {
-            const { userId, chat } = await getConversationDetails(conversationId, database)
-            verifyAuthData(authData, { userId })
-
-            const time = new Date()
-
-            const [id] = await database('messages').insert({
-                conversation_id: conversationId,
-                is_response: true,
-                content,
-                time,
-            })
-
-            pubsub.publish('NEW_MESSAGE', { message: { id, isResponse: true, content, time }, userId, chat, conversationId })
-
-            return id
+        markAsRead: async (_, { conversationId, isResponse }, { authData }) => {
+            const userIdQuery = Conversation.query().findById(conversationId).select('userId').joinRelated('chat')
+            verifyAuthData(authData, isResponse ? { conversationId } : await userIdQuery)
+            await Message.query().update({ read: true }).where({ conversationId, isResponse })
+            return null
         },
     },
     Subscription: {
@@ -104,10 +80,9 @@ export const messageResolvers = {
             subscribe: withFilter(
                 (_, { conversationId }, { pubsub, authData }) => {
                     verifyAuthData(authData, { conversationId })
-
                     return pubsub.asyncIterator('NEW_MESSAGE')
                 },
-                ({ conversationId }, args) => conversationId === args.conversationId
+                ({ conversationId }, args) => String(conversationId) === String(args.conversationId)
             ),
             resolve: (data) => data,
         },
@@ -117,7 +92,7 @@ export const messageResolvers = {
                     verifyAuthData(authData, { userId })
                     return pubsub.asyncIterator('NEW_MESSAGE')
                 },
-                ({ userId }, args) => userId === args.userId
+                ({ userId }, args) => String(userId) === String(args.userId)
             ),
             resolve: (data) => data,
         },
