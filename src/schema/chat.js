@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-core'
 import Chat from '../models/chat.js'
-import verifyAuthData from '../utils/verifyAuthData.js'
+import verifyAuthData from '../helpers/verifyAuthData.js'
 
 export const chatTypes = gql`
     type Query {

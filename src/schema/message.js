@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
 import Conversation from '../models/conversations.js'
 import Message from '../models/message.js'
-import verifyAuthData from '../utils/verifyAuthData.js'
+import verifyAuthData from '../helpers/verifyAuthData.js'
 
 export const messageTypes = gql`
     type Query {

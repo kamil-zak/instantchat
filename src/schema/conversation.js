@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-core'
 import jwt from 'jsonwebtoken'
 import { secrets } from '../config/env.js'
 import Conversation from '../models/conversations.js'
-import verifyAuthData from '../utils/verifyAuthData.js'
+import verifyAuthData from '../helpers/verifyAuthData.js'
 
 export const conversationTypes = gql`
     type Query {
