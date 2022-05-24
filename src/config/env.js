@@ -1,4 +1,4 @@
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, PORT } = process.env
+const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, PORT, CHAT_BOX_CLIENT_URL } = process.env
 export const databaseConfig = {
     host: DB_HOST || 'localhost',
     port: DB_PORT || 3306,
@@ -14,3 +14,5 @@ export const secrets = {
 }
 
 export const port = PORT || 3434
+
+export const chatBoxClientUrl = CHAT_BOX_CLIENT_URL || 'http://localhost:3000/panel/chatbox/?chatId='

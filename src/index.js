@@ -1,8 +1,7 @@
 import 'dotenv/config'
 import './config/database.js'
 import express from 'express'
-import fs from 'fs'
-import { port } from './config/env.js'
+import { chatBoxClientUrl, port } from './config/env.js'
 import configureGraphql from './config/graphql.js'
 import dev from './middlewares/dev.js'
 
@@ -14,8 +13,7 @@ if (process.env.NODE_ENV === 'development') app.use(dev())
 app.get('/chatbox/:id', (req, res) => {
     res.setHeader('Content-type', 'text/html')
     const { id } = req.params
-    let testPageSource = `TestPage<script src="/chatbox.js?chatId=${id}"></script>`
-    if (process.env.NODE_ENV === 'development') testPageSource += '<script src="/client.bundle.js"></script>'
+    const testPageSource = `TestPage<script src="/chatbox.js?chatId=${id}"></script>`
     res.send(testPageSource)
 })
 
@@ -23,12 +21,26 @@ app.get('/chatbox.js', (req, res) => {
     const { chatId } = req.query
     if (!chatId) return res.status(404).send('Not found')
     res.setHeader('Content-type', 'application/javascript; charset=utf-8')
-    const data = { chatId }
-    res.write(`window.instantchat_config = '${JSON.stringify(data)}';`)
-    if (process.env.NODE_ENV === 'development') return res.send()
-    const stream = fs.createReadStream('public/client.bundle.js')
-    stream.on('error', () => res.send())
-    stream.on('open', () => stream.pipe(res))
+    const script = `
+    const init = function() {
+        const iframe = document.createElement('iframe')
+        iframe.style = 'border: 0;position: fixed; right: 15px; bottom: 15px; width: 0px; height: 0px;'
+        iframe.src = '${chatBoxClientUrl}${chatId}'
+        document.body.appendChild(iframe)
+        window.addEventListener(
+            'message',
+            function ({ data }) {
+                if (!data.instantchatDimensions) return
+                const { width, height } = data.instantchatDimensions
+                iframe.style.height = height + 'px';
+                iframe.style.width = width + 'px';
+            },
+            false
+        );
+    }
+    window.addEventListener("load", init);
+    `
+    res.send(script)
 })
 
 app.use((req, res) => res.send('Hello'))
