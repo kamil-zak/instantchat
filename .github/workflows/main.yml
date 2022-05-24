@@ -22,5 +22,4 @@ jobs:
                       sudo git fetch origin main
                       sudo git reset --hard origin/main
                       sudo npm ci
-                      sudo npm run build
                       sudo pm2 start instantchat

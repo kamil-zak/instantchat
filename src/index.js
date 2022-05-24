@@ -3,12 +3,9 @@ import './config/database.js'
 import express from 'express'
 import { chatBoxClientUrl, port } from './config/env.js'
 import configureGraphql from './config/graphql.js'
-import dev from './middlewares/dev.js'
 
 const app = express()
 const server = await configureGraphql(app)
-
-if (process.env.NODE_ENV === 'development') app.use(dev())
 
 app.get('/chatbox/:id', (req, res) => {
     res.setHeader('Content-type', 'text/html')

@@ -37,7 +37,6 @@ const wsContext = async (ctx) => {
 const configureGraphql = async (app) => {
     const server = createServer(app)
     const wsServer = new WebSocketServer({ server })
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     useServer({ schema, context: wsContext }, wsServer)
     const apolloServer = new ApolloServer({ schema, context })
     await apolloServer.start()
