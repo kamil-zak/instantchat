@@ -59,8 +59,7 @@ export const messageResolvers = {
     Mutation: {
         sendMessage: async (_, { conversationId, content, isResponse }, { pubsub, authData }) => {
             const { userId, chat } = await Conversation.query().findById(conversationId).select('userId').withGraphJoined('chat')
-            if (isResponse) verifyAuthData(authData, isResponse ? { userId } : { conversationId })
-
+            verifyAuthData(authData, isResponse ? { userId } : { conversationId })
             const time = new Date()
             const { id } = await Message.query().insert({ conversationId, isResponse, content, time })
 
