@@ -1,11 +1,13 @@
 import 'dotenv/config'
 import './config/database.js'
 import express from 'express'
+import cookieParser from 'cookie-parser'
 import { port } from './config/env.js'
 import configureGraphql from './config/graphql.js'
 import getChatBoxScript from './helpers/getChatBoxScript.js'
 
 const app = express()
+app.use(cookieParser())
 const server = await configureGraphql(app)
 
 app.get('/chatbox/:id', (req, res) => {

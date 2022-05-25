@@ -1,5 +1,6 @@
-import { ApolloError, AuthenticationError, gql } from 'apollo-server-core'
+import { ApolloError, gql } from 'apollo-server-core'
 import jwt from 'jsonwebtoken'
+import { REFRESH_COOKIE } from '../config/constants.js'
 import { secrets } from '../config/env.js'
 import User from '../models/user.js'
 
@@ -10,7 +11,7 @@ export const authTypes = gql`
 
     type Mutation {
         signIn(email: String!, password: String!): Tokens
-        refresh(refreshToken: String!): String!
+        signOut: Boolean
     }
 
     type UserPayload {
@@ -19,7 +20,6 @@ export const authTypes = gql`
     }
     type Tokens {
         token: String!
-        refreshToken: String!
     }
 `
 export const authResolvers = {
@@ -31,21 +31,18 @@ export const authResolvers = {
         },
     },
     Mutation: {
-        signIn: async (_, { email, password }) => {
+        signIn: async (_, { email, password }, { res }) => {
             const user = await User.query().where({ email, password }).first()
             if (!user) throw new ApolloError('Dane logowania są niepoprawne', 'INVALID_LOGIN_DATA')
             const userId = String(user.id)
-            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '3000m' })
+            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '10s' })
             const refreshToken = jwt.sign({ userId }, secrets.refreshTokenSecret)
-            return { token, refreshToken }
+            res.cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, path: '/graphql/refresh' })
+            return { token }
         },
-        refresh: (_, { refreshToken }) =>
-            new Promise((resolve, reject) => {
-                jwt.verify(refreshToken, secrets.refreshTokenSecret, (err, { userId }) => {
-                    if (err) return reject(new AuthenticationError())
-                    const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '30m' })
-                    resolve({ token })
-                })
-            }),
+        signOut: (_, params, { res }) => {
+            res.clearCookie(REFRESH_COOKIE, { path: '/graphql/refresh' })
+            return null
+        },
     },
 }
