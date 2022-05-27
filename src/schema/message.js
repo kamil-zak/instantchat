@@ -9,7 +9,7 @@ export const messageTypes = gql`
         getMessages(conversationId: ID!, before: ID, limit: Int = 10): MessagesResponse @auth
     }
     type Mutation {
-        sendMessage(conversationId: ID!, content: String!, isResponse: Boolean = false): ID! @auth
+        sendMessage(conversationId: ID!, content: String!, isResponse: Boolean = false): Message! @auth
         markAsRead(conversationId: ID!, isResponse: Boolean = false): Boolean @auth
     }
     type Subscription {
@@ -61,11 +61,12 @@ export const messageResolvers = {
             const { userId, chat } = await Conversation.query().findById(conversationId).select('userId').withGraphJoined('chat')
             verifyAuthData(authData, isResponse ? { userId } : { conversationId })
             const time = new Date()
-            const { id } = await Message.query().insert({ conversationId, isResponse, content, time })
+            const newMessageData = { conversationId, isResponse, content, time }
+            const { id } = await Message.query().insert(newMessageData)
 
             pubsub.publish('NEW_MESSAGE', { message: { id, isResponse, content, time }, userId, chat, conversationId })
 
-            return id
+            return { id, ...newMessageData }
         },
         markAsRead: async (_, { conversationId, isResponse }, { authData }) => {
             const userIdQuery = Conversation.query().findById(conversationId).select('userId').joinRelated('chat')
