@@ -1,0 +1,22 @@
+body {
+    background: linear-gradient(90deg, rgb(189, 186, 238) 0%, rgba(242, 245, 255, 1) 100%);
+    color: #272555;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.header {
+    margin-top: 50px;
+    margin-left: 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+}
+
+.header__title {
+    font-size: 50px;
+}
+
+.header__subtitle {
+    font-size: 30px;
+    color: #373474;
+}

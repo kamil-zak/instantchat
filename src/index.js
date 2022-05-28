@@ -2,19 +2,30 @@ import 'dotenv/config'
 import './config/database.js'
 import express from 'express'
 import cookieParser from 'cookie-parser'
+import { create } from 'express-handlebars'
+import { join } from 'path'
 import { port } from './config/env.js'
 import configureGraphql from './config/graphql.js'
 import getChatBoxScript from './helpers/getChatBoxScript.js'
+import Chat from './models/chat.js'
 
 const app = express()
 app.use(cookieParser())
+
+app.engine('hbs', create({ extname: '.hbs' }).engine)
+app.set('view engine', 'hbs')
+app.set('views', join('src', 'views'))
+
+app.use(express.static(join('src', 'public')))
+
 const server = await configureGraphql(app)
 
-app.get('/chatbox/:id', (req, res) => {
-    res.setHeader('Content-type', 'text/html')
+app.get('/chatbox/:id', async (req, res, next) => {
     const { id } = req.params
-    const testPageSource = `TestPage<script src="/chatbox.js?chatId=${id}"></script>`
-    res.send(testPageSource)
+    if (!id) return next()
+    const chat = await Chat.query().findById(id)
+    if (!chat) return next()
+    res.render('testChatBox', { chatId: id, chatName: chat.name, layout: 'testPage' })
 })
 
 app.get('/chatbox.js', (req, res) => {
