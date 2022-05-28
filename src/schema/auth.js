@@ -15,7 +15,7 @@ export const authTypes = gql`
     }
 
     type UserPayload {
-        id: ID!
+        userId: ID!
         email: String!
     }
     type Tokens {
@@ -26,7 +26,7 @@ export const authResolvers = {
     Query: {
         userPayload: async (_, args, { authData }) => {
             if (!authData?.userId) return null
-            const user = await User.query().select('id', 'email').findById(authData.userId)
+            const user = await User.query().select({ userId: 'id', email: 'email' }).findById(authData.userId)
             return user
         },
     },
