@@ -31,8 +31,13 @@ const context = async ({ req, res }) => {
 
 const wsContext = async (ctx) => {
     const token = ctx.connectionParams.authorization?.split(' ')?.[1]
-    const authData = await getJWTpayload(token)
+    const authData = jwt.decode(token)
     return { pubsub, authData }
+}
+
+const wsConnect = async (ctx) => {
+    const token = ctx.connectionParams?.authorization?.split(' ')?.[1]
+    if (!(await getJWTpayload(token))) return false
 }
 
 const configureGraphql = async (app) => {
@@ -48,7 +53,7 @@ const configureGraphql = async (app) => {
 
     const server = createServer(app)
     const wsServer = new WebSocketServer({ server })
-    useServer({ schema, context: wsContext }, wsServer)
+    useServer({ schema, context: wsContext, onConnect: wsConnect }, wsServer)
     const apolloServer = new ApolloServer({ schema, context })
     await apolloServer.start()
     apolloServer.applyMiddleware({ app })
