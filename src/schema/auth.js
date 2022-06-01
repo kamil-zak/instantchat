@@ -35,7 +35,7 @@ export const authResolvers = {
             const user = await User.query().where({ email, password }).first()
             if (!user) throw new ApolloError('Dane logowania są niepoprawne', 'INVALID_LOGIN_DATA')
             const userId = String(user.id)
-            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '10s' })
+            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '5m' })
             const refreshToken = jwt.sign({ userId }, secrets.refreshTokenSecret)
             res.cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, path: '/graphql/refresh' })
             return { token }

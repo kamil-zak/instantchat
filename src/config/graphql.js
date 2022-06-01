@@ -41,7 +41,7 @@ const configureGraphql = async (app) => {
         jwt.verify(refreshToken, secrets.refreshTokenSecret, (err, payload) => {
             if (err) return res.sendStatus(401)
             const { userId } = payload
-            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '10s' })
+            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '5m' })
             res.send({ token })
         })
     })

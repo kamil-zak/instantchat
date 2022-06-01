@@ -9,7 +9,7 @@ export const messageWidgetTypes = gql`
     }
     type Mutation {
         sendMessageWidget(conversationId: ID!, content: String!): Message! @auth(authBy: conversationId)
-        markAsReadWidget(conversationId: ID!): Boolean @auth
+        markAsReadWidget(conversationId: ID!): Boolean @auth(authBy: conversationId)
     }
     type Subscription {
         newMessageWidget(conversationId: ID!): NewMessage! @auth(authBy: conversationId)
@@ -40,7 +40,7 @@ export const messageWidgetResolvers = {
             return { id, ...newMessageData }
         },
         markAsReadWidget: async (_, { conversationId }) => {
-            await Message.query().update({ read: true }).where({ conversationId, isResponse: false })
+            await Message.query().update({ read: true }).where({ conversationId, isResponse: true })
             return null
         },
     },
