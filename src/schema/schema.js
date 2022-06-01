@@ -5,10 +5,19 @@ import { chatResolvers, chatTypes } from './chat.js'
 import { conversationResolvers, conversationTypes } from './conversation.js'
 import { messageResolvers, messageTypes } from './message.js'
 import { authDirectiveTypeDefs, authDirectiveTransformer } from './directives/authDirective.js'
+import { messageWidgetResolvers, messageWidgetTypes } from './widget/message.js'
+import { conversationWidgetResolvers, conversationWidgetTypes } from './widget/conversation.js'
 
-const typeDefs = [authDirectiveTypeDefs, authTypes, messageTypes, conversationTypes, chatTypes]
+const typeDefs = [authDirectiveTypeDefs, authTypes, messageTypes, messageWidgetTypes, conversationTypes, conversationWidgetTypes, chatTypes]
 
-const resolvers = mergeResolvers([authResolvers, messageResolvers, conversationResolvers, chatResolvers])
+const resolvers = mergeResolvers([
+    authResolvers,
+    messageResolvers,
+    messageWidgetResolvers,
+    conversationResolvers,
+    conversationWidgetResolvers,
+    chatResolvers,
+])
 
 const schema = makeExecutableSchema({ typeDefs, resolvers })
 

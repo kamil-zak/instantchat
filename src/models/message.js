@@ -10,6 +10,15 @@ class Message extends Model {
             onlyLatest(builder) {
                 builder.whereIn('id', Message.query().max('id').groupBy('conversation_id'))
             },
+            formated(buildrer, { conversationId, limit, before }) {
+                buildrer
+                    .where({ conversationId })
+                    .orderBy('time', 'desc')
+                    .limit(limit + 1)
+                    .modify((builder) => {
+                        if (before) builder.andWhere('id', '<', before)
+                    })
+            },
         }
     }
 }

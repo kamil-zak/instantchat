@@ -1,40 +1,23 @@
 import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
-import Message from '../models/message.js'
+import Conversation from '../../models/conversations.js'
+import Message from '../../models/message.js'
 
-export const messageTypes = gql`
+export const messageWidgetTypes = gql`
     type Query {
-        getMessages(conversationId: ID!, before: ID, limit: Int = 10): MessagesResponse @auth
+        getMessagesWidget(conversationId: ID!, before: ID, limit: Int = 10): MessagesResponse @auth(authBy: conversationId)
     }
     type Mutation {
-        sendMessage(conversationId: ID!, content: String!): Message! @auth
-        markAsRead(conversationId: ID!): Boolean @auth
+        sendMessageWidget(conversationId: ID!, content: String!): Message! @auth(authBy: conversationId)
+        markAsReadWidget(conversationId: ID!): Boolean @auth
     }
     type Subscription {
-        newMessage(userId: ID!): NewMessage! @auth
-    }
-
-    type MessagesResponse {
-        hasMore: Boolean!
-        messages: [Message!]!
-    }
-
-    type Message {
-        id: ID!
-        isResponse: Boolean!
-        content: String!
-        time: String!
-    }
-
-    type NewMessage {
-        chat: Chat!
-        conversationId: ID!
-        message: Message!
+        newMessageWidget(conversationId: ID!): NewMessage! @auth(authBy: conversationId)
     }
 `
-export const messageResolvers = {
+export const messageWidgetResolvers = {
     Query: {
-        getMessages: async (_, { conversationId, before, limit }) => {
+        getMessagesWidget: async (_, { conversationId, before, limit }) => {
             const messages = await Message.query().modify('formated', { conversationId, limit, before })
             messages.reverse()
 
@@ -45,9 +28,10 @@ export const messageResolvers = {
         },
     },
     Mutation: {
-        sendMessage: async (_, { conversationId, content }, { pubsub, userId, chat }) => {
+        sendMessageWidget: async (_, { conversationId, content }, { pubsub }) => {
+            const { userId, chat } = await Conversation.query().findById(conversationId).select('userId').withGraphJoined('chat')
             const time = new Date()
-            const isResponse = true
+            const isResponse = false
             const newMessageData = { conversationId, isResponse, content, time }
             const { id } = await Message.query().insert(newMessageData)
 
@@ -55,23 +39,20 @@ export const messageResolvers = {
 
             return { id, ...newMessageData }
         },
-        markAsRead: async (_, { conversationId }) => {
+        markAsReadWidget: async (_, { conversationId }) => {
             await Message.query().update({ read: true }).where({ conversationId, isResponse: false })
             return null
         },
     },
     Subscription: {
-        newMessage: {
+        newMessageWidget: {
             subscribe: withFilter(
                 (_, params, { pubsub }) => {
                     return pubsub.asyncIterator('NEW_MESSAGE')
                 },
-                ({ userId }, args) => String(userId) === String(args.userId)
+                ({ conversationId }, args) => String(conversationId) === String(args.conversationId)
             ),
             resolve: (data) => data,
         },
-    },
-    Message: {
-        time: (parent) => parent.time.toISOString(),
     },
 }
