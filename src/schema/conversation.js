@@ -1,9 +1,18 @@
 import { gql } from 'apollo-server-core'
+import { withFilter } from 'graphql-subscriptions'
 import Conversation from '../models/conversations.js'
 
 export const conversationTypes = gql`
     type Query {
         getConversations(userId: ID!): [Conversation!]! @auth
+    }
+
+    type Mutation {
+        isTyping(conversationId: ID!): Boolean @auth
+    }
+
+    type Subscription {
+        isTypingWidget(conversationId: ID!): Boolean @auth
     }
 
     type Conversation {
@@ -21,6 +30,22 @@ export const conversationResolvers = {
                 .where({ userId })
                 .orderBy('latestMessage.time', 'desc')
             return conversations
+        },
+    },
+    Mutation: {
+        isTyping: async (_, { conversationId }, { pubsub }) => {
+            pubsub.publish('IS_TYPING', { isTyping: true, conversationId })
+        },
+    },
+    Subscription: {
+        isTypingWidget: {
+            subscribe: withFilter(
+                (_, params, { pubsub }) => {
+                    return pubsub.asyncIterator('IS_TYPING_WIDGET')
+                },
+                ({ conversationId }, args) => conversationId === args.conversationId
+            ),
+            resolve: (data) => data.isTypingWidget,
         },
     },
     Conversation: {
