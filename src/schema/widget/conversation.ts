@@ -1,8 +1,10 @@
 import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
 import jwt from 'jsonwebtoken'
-import { secrets } from '../../config/env.js'
-import Conversation from '../../models/conversations.js'
+import { secrets } from '../../config/env'
+import { createConversation } from '../../services/conversation'
+import { IConversationWidgetResolvers, IIsTypingArgs, IIsTypingData, IIsTypingWidgetData } from '../../types/conversation'
+import { IWSContext } from '../../types/graphql'
 
 export const conversationWidgetTypes = gql`
     type Mutation {
@@ -19,25 +21,25 @@ export const conversationWidgetTypes = gql`
         token: String!
     }
 `
-export const conversationWidgetResolvers = {
+export const conversationWidgetResolvers: IConversationWidgetResolvers = {
     Mutation: {
         createConversation: async (_, { chatId }) => {
-            const conversation = await Conversation.query().insert({ chatId })
-            const conversationId = String(conversation.id)
+            const conversationId = await createConversation(chatId)
             const token = jwt.sign({ conversationId }, secrets.tokenSecret)
             return { token, id: conversationId }
         },
         isTypingWidget: async (_, { conversationId }, { pubsub }) => {
-            pubsub.publish('IS_TYPING_WIDGET', { isTypingWidget: true, conversationId })
+            const pubsubData: IIsTypingWidgetData = { isTypingWidget: true, conversationId: Number(conversationId) }
+            pubsub.publish('IS_TYPING_WIDGET', pubsubData)
         },
     },
     Subscription: {
         isTyping: {
             subscribe: withFilter(
-                (_, params, { pubsub }) => {
+                (_, params, { pubsub }: IWSContext) => {
                     return pubsub.asyncIterator('IS_TYPING')
                 },
-                ({ conversationId }, args) => conversationId === args.conversationId
+                ({ conversationId }: IIsTypingData, args: IIsTypingArgs) => conversationId === Number(args.conversationId)
             ),
             resolve: (data) => data.isTyping,
         },

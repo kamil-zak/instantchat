@@ -1,5 +1,6 @@
 import { gql } from 'apollo-server-core'
-import Chat from '../models/chat.js'
+import { createChat, deleteChat, getChatById, getChatByUserId, updateChat } from '../services/chat'
+import { IChatResolvers } from '../types/chat'
 
 export const chatTypes = gql`
     type Query {
@@ -31,32 +32,29 @@ export const chatTypes = gql`
         color: String!
     }
 `
-export const chatResolvers = {
+export const chatResolvers: IChatResolvers = {
     Query: {
         getChats: async (_, { userId }) => {
-            const chats = await Chat.query().where({ userId })
+            const chats = await getChatByUserId(userId)
             return chats
         },
         getChat: async (_, { chatId }) => {
-            const chat = await Chat.query().findById(chatId)
+            const chat = await getChatById(chatId)
             return chat
         },
     },
     Mutation: {
         createChat: async (_, { userId, details }) => {
-            const { id } = await Chat.query().insert({ userId, ...details })
-            return { ...details, id }
+            const chat = await createChat({ userId, details })
+            return chat
         },
         updateChat: async (_, { chatId, details }) => {
-            await Chat.query()
-                .findById(chatId)
-                .update({ ...details })
-
-            return { ...details, id: chatId }
+            const chat = await updateChat({ chatId, details })
+            return chat
         },
         deleteChat: async (_, { chatId }) => {
-            await Chat.query().deleteById(chatId)
-            return { id: chatId }
+            await deleteChat(chatId)
+            return { id: Number(chatId) }
         },
     },
 }

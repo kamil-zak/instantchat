@@ -1,8 +1,10 @@
 import { ApolloError, gql } from 'apollo-server-core'
 import jwt from 'jsonwebtoken'
-import { REFRESH_COOKIE } from '../config/constants.js'
-import { secrets } from '../config/env.js'
-import User from '../models/user.js'
+import { REFRESH_COOKIE } from '../config/constants'
+import { secrets } from '../config/env'
+import { getUserById, getUserBySignInData } from '../services/user'
+import { IAuthResolvers } from '../types/auth'
+import { isTokenUserPayload } from '../types/graphql'
 
 export const authTypes = gql`
     type Query {
@@ -22,19 +24,19 @@ export const authTypes = gql`
         token: String!
     }
 `
-export const authResolvers = {
+export const authResolvers: IAuthResolvers = {
     Query: {
         userPayload: async (_, args, { authData }) => {
-            if (!authData?.userId) return null
-            const user = await User.query().select({ userId: 'id', email: 'email' }).findById(authData.userId)
+            if (!isTokenUserPayload(authData)) return null
+            const user = await getUserById(authData.userId)
             return user
         },
     },
     Mutation: {
         signIn: async (_, { email, password }, { res }) => {
-            const user = await User.query().where({ email, password }).first()
+            const user = await getUserBySignInData({ email, password })
             if (!user) throw new ApolloError('Dane logowania są niepoprawne', 'INVALID_LOGIN_DATA')
-            const userId = String(user.id)
+            const { userId } = user
             const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '5m' })
             const refreshToken = jwt.sign({ userId }, secrets.refreshTokenSecret)
             res.cookie(REFRESH_COOKIE, refreshToken, { httpOnly: true, path: '/graphql/refresh' })

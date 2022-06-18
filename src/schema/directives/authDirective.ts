@@ -1,7 +1,7 @@
 import { mapSchema, getDirective, MapperKind } from '@graphql-tools/utils'
 import { AuthenticationError, ForbiddenError, gql } from 'apollo-server-core'
-import Chat from '../../models/chat.js'
-import Conversation from '../../models/conversations.js'
+import { getChatUser } from '../../services/chat'
+import { getConversationUser } from '../../services/conversation'
 
 export const authDirectiveTypeDefs = gql`
     directive @auth(authBy: authBy = userId) on FIELD_DEFINITION
@@ -22,34 +22,28 @@ export const authDirectiveTransformer = (schema) =>
                 // eslint-disable-next-line no-param-reassign
                 fieldConfig.resolve = async function (source, args, context, info) {
                     const { authData } = context
-                    if (!authData || !authData[authBy]) throw new AuthenticationError()
+                    if (!authData || !authData[authBy]) throw new AuthenticationError('')
 
-                    let newContext = { ...context }
                     switch (authBy) {
                         case 'conversationId':
-                            if (args.conversationId !== authData.conversationId) throw new ForbiddenError()
+                            if (Number(args.conversationId) !== authData.conversationId) throw new ForbiddenError('')
                             break
                         case 'userId':
                             if (args.userId) {
-                                if (args.userId !== authData.userId) throw new ForbiddenError()
+                                if (Number(args.userId) !== authData.userId) throw new ForbiddenError('')
                             } else if (args.chatId) {
-                                const { userId } = await Chat.query().findById(args.chatId).select('userId')
-                                if (authData.userId !== String(userId)) throw new ForbiddenError()
-                                newContext = { ...context, userId }
+                                const userId = await getChatUser(args.chatId)
+                                if (authData.userId !== userId) throw new ForbiddenError('')
                             } else if (args.conversationId) {
-                                const { userId, chat } = await Conversation.query()
-                                    .findById(args.conversationId)
-                                    .select('userId')
-                                    .withGraphJoined('chat')
-                                if (authData.userId !== String(userId)) throw new ForbiddenError()
-                                newContext = { ...context, userId, chat }
+                                const userId = await getConversationUser(args.conversationId)
+                                if (authData.userId !== userId) throw new ForbiddenError('')
                             }
                             break
                         default:
                             throw new Error()
                     }
 
-                    return resolve(source, args, newContext, info)
+                    return resolve(source, args, context, info)
                 }
                 return fieldConfig
             }

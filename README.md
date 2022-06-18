@@ -5,6 +5,7 @@ This project is under construction. It will be server for instantchat service, w
 ## Built with
 
 -   **express**
+-   **TypeScript**
 -   **Apollo Server GraphQL**
 -   **MySQL**
 -   **knex**

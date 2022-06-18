@@ -1,6 +1,8 @@
 import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
-import Message from '../models/message.js'
+import { getLimitedMessages, markMessagesAsRead, sendMessage } from '../services/message'
+import { IWSContext } from '../types/graphql'
+import { IMessageResolvers, INewMessageArgs, INewMessageData } from '../types/message'
 
 export const messageTypes = gql`
     type Query {
@@ -32,46 +34,37 @@ export const messageTypes = gql`
         message: Message!
     }
 `
-export const messageResolvers = {
+
+export const messageResolvers: IMessageResolvers = {
     Query: {
         getMessages: async (_, { conversationId, before, limit }) => {
-            const messages = await Message.query().modify('formated', { conversationId, limit, before })
-            messages.reverse()
-
-            const hasMore = messages.length > limit
-            if (hasMore) messages.splice(0, 1)
-
-            return { hasMore, messages }
+            const messages = await getLimitedMessages({ conversationId, before, limit })
+            return messages
         },
     },
     Mutation: {
-        sendMessage: async (_, { conversationId, content }, { pubsub, userId, chat }) => {
-            const time = new Date()
+        sendMessage: async (_, { conversationId, content }, { pubsub }) => {
             const isResponse = true
-            const newMessageData = { conversationId, isResponse, content, time }
-            const { id } = await Message.query().insert(newMessageData)
-
-            pubsub.publish('NEW_MESSAGE', { message: { id, isResponse, content, time }, userId, chat, conversationId })
-
-            return { id, ...newMessageData }
+            const message = await sendMessage({ conversationId, content, isResponse, pubsub })
+            return message
         },
         markAsRead: async (_, { conversationId }) => {
-            await Message.query().update({ read: true }).where({ conversationId, isResponse: false })
+            await markMessagesAsRead({ conversationId, isResponse: false })
             return null
         },
     },
     Subscription: {
         newMessage: {
             subscribe: withFilter(
-                (_, params, { pubsub }) => {
+                (_, params, { pubsub }: IWSContext) => {
                     return pubsub.asyncIterator('NEW_MESSAGE')
                 },
-                ({ userId }, args) => String(userId) === String(args.userId)
+                ({ userId }: INewMessageData, args: INewMessageArgs) => userId === Number(args.userId)
             ),
             resolve: (data) => data,
         },
     },
     Message: {
-        time: (parent) => parent.time.toISOString(),
+        time: async (parent) => parent.time.toISOString(),
     },
 }

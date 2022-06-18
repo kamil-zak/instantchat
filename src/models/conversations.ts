@@ -1,11 +1,14 @@
 import { Model } from 'objection'
-import Chat from './chat.js'
-import Message from './message.js'
+import Chat from './chat'
+import Message from './message'
+
+interface Conversation {
+    id: number
+    chatId: number
+}
 
 class Conversation extends Model {
-    static get tableName() {
-        return 'conversations'
-    }
+    static tableName = 'conversations'
 
     static get relationMappings() {
         return {

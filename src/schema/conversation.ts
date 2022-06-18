@@ -1,6 +1,8 @@
 import { gql } from 'apollo-server-core'
 import { withFilter } from 'graphql-subscriptions'
-import Conversation from '../models/conversations.js'
+import { getConversationsByUser } from '../services/conversation'
+import { IConversationResolvers, IIsTypingData, IIsTypingWidgetArgs, IIsTypingWidgetData } from '../types/conversation'
+import { IWSContext } from '../types/graphql'
 
 export const conversationTypes = gql`
     type Query {
@@ -22,28 +24,26 @@ export const conversationTypes = gql`
         latestMessage: Message!
     }
 `
-export const conversationResolvers = {
+export const conversationResolvers: IConversationResolvers = {
     Query: {
         getConversations: async (_, { userId }) => {
-            const conversations = await Conversation.query()
-                .withGraphJoined('[chat, latestMessage]')
-                .where({ userId })
-                .orderBy('latestMessage.time', 'desc')
+            const conversations = await getConversationsByUser(userId)
             return conversations
         },
     },
     Mutation: {
         isTyping: async (_, { conversationId }, { pubsub }) => {
-            pubsub.publish('IS_TYPING', { isTyping: true, conversationId })
+            const pubsubData: IIsTypingData = { isTyping: true, conversationId: Number(conversationId) }
+            pubsub.publish('IS_TYPING', pubsubData)
         },
     },
     Subscription: {
         isTypingWidget: {
             subscribe: withFilter(
-                (_, params, { pubsub }) => {
+                (_, params, { pubsub }: IWSContext) => {
                     return pubsub.asyncIterator('IS_TYPING_WIDGET')
                 },
-                ({ conversationId }, args) => conversationId === args.conversationId
+                ({ conversationId }: IIsTypingWidgetData, args: IIsTypingWidgetArgs) => conversationId === Number(args.conversationId)
             ),
             resolve: (data) => data.isTypingWidget,
         },

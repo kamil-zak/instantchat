@@ -1,6 +1,6 @@
 import knexConfig from 'knex'
 import { knexSnakeCaseMappers, Model } from 'objection'
-import { databaseConfig } from './env.js'
+import { databaseConfig } from './env'
 
 Model.useLimitInFirst = true
 

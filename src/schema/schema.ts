@@ -1,12 +1,12 @@
 import { mergeResolvers } from '@graphql-tools/merge'
 import { makeExecutableSchema } from '@graphql-tools/schema'
-import { authResolvers, authTypes } from './auth.js'
-import { chatResolvers, chatTypes } from './chat.js'
-import { conversationResolvers, conversationTypes } from './conversation.js'
-import { messageResolvers, messageTypes } from './message.js'
-import { authDirectiveTypeDefs, authDirectiveTransformer } from './directives/authDirective.js'
-import { messageWidgetResolvers, messageWidgetTypes } from './widget/message.js'
-import { conversationWidgetResolvers, conversationWidgetTypes } from './widget/conversation.js'
+import { authResolvers, authTypes } from './auth'
+import { chatResolvers, chatTypes } from './chat'
+import { conversationResolvers, conversationTypes } from './conversation'
+import { messageResolvers, messageTypes } from './message'
+import { authDirectiveTypeDefs, authDirectiveTransformer } from './directives/authDirective'
+import { messageWidgetResolvers, messageWidgetTypes } from './widget/message'
+import { conversationWidgetResolvers, conversationWidgetTypes } from './widget/conversation'
 
 const typeDefs = [authDirectiveTypeDefs, authTypes, messageTypes, messageWidgetTypes, conversationTypes, conversationWidgetTypes, chatTypes]
 

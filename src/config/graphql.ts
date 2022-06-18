@@ -5,17 +5,19 @@ import { createServer } from 'http'
 import { PubSub } from 'graphql-subscriptions'
 import jwt from 'jsonwebtoken'
 import DataLoader from 'dataloader'
-import schema from '../schema/schema.js'
-import { secrets } from './env.js'
-import { batchUnreadCount } from './dataloader.js'
-import { REFRESH_COOKIE } from './constants.js'
+import { Request, Response } from 'express'
+import schema from '../schema/schema'
+import { secrets } from './env'
+import { batchUnreadCount } from './dataloader'
+import { REFRESH_COOKIE, REFRESH_PATH, TOKEN_EXPIRES } from './constants'
+import { IContext, TokenPayload } from '../types/graphql'
 
 const pubsub = new PubSub()
 
-const getJWTpayload = (token) => {
+const getJWTpayload = (token): Promise<TokenPayload> => {
     if (!token) return Promise.resolve(null)
     return new Promise((resolve) => {
-        jwt.verify(token, secrets.tokenSecret, (err, payload) => {
+        jwt.verify(token, secrets.tokenSecret, (err, payload: TokenPayload) => {
             if (err) resolve(null)
             resolve(payload)
         })
@@ -26,7 +28,8 @@ const context = async ({ req, res }) => {
     const token = req.headers.authorization?.split(' ')?.[1]
     const authData = await getJWTpayload(token)
     const unreadCountLoader = new DataLoader(batchUnreadCount)
-    return { pubsub, authData, unreadCountLoader, res }
+    const contextData: IContext = { pubsub, authData, unreadCountLoader, res }
+    return contextData
 }
 
 const wsContext = async (ctx) => {
@@ -41,12 +44,12 @@ const wsConnect = async (ctx) => {
 }
 
 const configureGraphql = async (app) => {
-    app.get('/graphql/refresh', async (req, res) => {
+    app.get(REFRESH_PATH, async (req: Request, res: Response) => {
         const refreshToken = req.cookies[REFRESH_COOKIE]
         jwt.verify(refreshToken, secrets.refreshTokenSecret, (err, payload) => {
             if (err) return res.sendStatus(401)
             const { userId } = payload
-            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: '5m' })
+            const token = jwt.sign({ userId }, secrets.tokenSecret, { expiresIn: TOKEN_EXPIRES })
             res.send({ token })
         })
     })
