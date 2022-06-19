@@ -1,13 +1,9 @@
 import knexConfig from 'knex'
-import { knexSnakeCaseMappers, Model } from 'objection'
-import { databaseConfig } from './env'
+import { Model } from 'objection'
+import config from '../../knexfile'
 
 Model.useLimitInFirst = true
 
-const knex = knexConfig({
-    client: 'mysql2',
-    connection: databaseConfig,
-    ...knexSnakeCaseMappers(),
-})
+const knex = knexConfig(config.development)
 
 Model.knex(knex)

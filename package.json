@@ -5,8 +5,9 @@
     "main": "index.js",
     "scripts": {
         "dev": "NODE_ENV=development ts-node-dev src/index.ts",
-        "start": "NODE_ENV=production node out/index.js",
+        "start": "NODE_ENV=production node out/src/index.js",
         "build": " tsc",
+        "migrate": "knex migrate:latest",
         "lint": "eslint src",
         "lint:fix": "eslint src --fix",
         "format": "prettier src --write",

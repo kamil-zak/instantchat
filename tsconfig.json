@@ -1,12 +1,11 @@
 {
-    "include": ["src/**/*.ts"],
+    "include": ["src/index.ts"],
     "compilerOptions": {
         "target": "es2022",
         "module": "commonjs",
         "esModuleInterop": true,
         "moduleResolution": "node",
         "outDir": "./out",
-        "skipLibCheck": true,
-        "rootDir": "src"
+        "skipLibCheck": true
     }
 }
